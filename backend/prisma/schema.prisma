@@ -1,0 +1,215 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  teamMemberships  TeamMember[]
+  prioritiesSet    VariantPriority[]
+  notesWritten     VariantNote[]
+  auditLogs        PriorityAuditLog[]
+  ownedTeams       Team[]
+}
+
+model Team {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  ownerUserId String
+  createdAt   DateTime @default(now())
+
+  owner          User              @relation(fields: [ownerUserId], references: [id])
+  members        TeamMember[]
+  ownedPatients  Patient[]         @relation("PatientOwner")
+  sharedPatients PatientTeam[]
+  priorities     VariantPriority[]
+  notes          VariantNote[]
+  auditLogs      PriorityAuditLog[]
+}
+
+model TeamMember {
+  id       String   @id @default(uuid())
+  teamId   String
+  userId   String
+  role     Role     @default(VIEWER)
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([teamId, userId])
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+model Patient {
+  id          String   @id @default(uuid())
+  patientCode String   @unique
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime
+  gender      String
+  ethnicity   String?
+  diagnosis   String
+  ownerTeamId String
+  createdAt   DateTime @default(now())
+
+  ownerTeam   Team          @relation("PatientOwner", fields: [ownerTeamId], references: [id])
+  sharedTeams PatientTeam[]
+  studies     Study[]
+  variants    Variant[]
+}
+
+model PatientTeam {
+  patientId String
+  teamId    String
+
+  patient Patient @relation(fields: [patientId], references: [id])
+  team    Team    @relation(fields: [teamId], references: [id])
+
+  @@id([patientId, teamId])
+}
+
+model Study {
+  id                 String      @id @default(uuid())
+  patientId          String
+  studyName          String
+  studyType          StudyType
+  sequencingPlatform String?
+  dateConducted      DateTime
+  status             StudyStatus @default(COMPLETED)
+  notes              String?
+  createdAt          DateTime    @default(now())
+
+  patient  Patient   @relation(fields: [patientId], references: [id])
+  variants Variant[]
+}
+
+enum StudyType {
+  WGS
+  WES
+  PANEL
+  RNA
+}
+
+enum StudyStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Variant {
+  id                   String               @id @default(uuid())
+  patientId            String
+  studyId              String?
+  chromosome           String
+  position             Int
+  refAllele            String
+  altAllele            String
+  geneName             String
+  rsId                 String?
+  variantType          VariantType
+  zygosity             Zygosity
+  alleleFrequency      Float?
+  caddScore            Float?
+  clinicalSignificance ClinicalSignificance
+  consequence          String
+  proteinChange        String?
+  hgvsC                String?
+  gnomadAf             Float?
+  siftPrediction       String?
+  polyphenPrediction   String?
+  createdAt            DateTime             @default(now())
+
+  patient   Patient           @relation(fields: [patientId], references: [id])
+  study     Study?            @relation(fields: [studyId], references: [id])
+  priorities VariantPriority[]
+  notes      VariantNote[]
+  auditLogs  PriorityAuditLog[]
+}
+
+enum VariantType {
+  SNV
+  INDEL
+  CNV
+  SV
+}
+
+enum Zygosity {
+  HETEROZYGOUS
+  HOMOZYGOUS
+  HEMIZYGOUS
+}
+
+enum ClinicalSignificance {
+  PATHOGENIC
+  LIKELY_PATHOGENIC
+  VUS
+  LIKELY_BENIGN
+  BENIGN
+}
+
+model VariantPriority {
+  id          String   @id @default(uuid())
+  variantId   String
+  teamId      String
+  priority    Priority
+  setByUserId String
+  updatedAt   DateTime @updatedAt
+
+  variant   Variant @relation(fields: [variantId], references: [id])
+  team      Team    @relation(fields: [teamId], references: [id])
+  setByUser User    @relation(fields: [setByUserId], references: [id])
+
+  @@unique([variantId, teamId])
+}
+
+enum Priority {
+  IMPORTANT
+  LOW
+  AVOID
+}
+
+model VariantNote {
+  id        String   @id @default(uuid())
+  variantId String
+  teamId    String
+  userId    String
+  noteText  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  variant Variant @relation(fields: [variantId], references: [id])
+  team    Team    @relation(fields: [teamId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+}
+
+model PriorityAuditLog {
+  id          String    @id @default(uuid())
+  variantId   String
+  teamId      String
+  userId      String
+  oldPriority Priority?
+  newPriority Priority
+  changedAt   DateTime  @default(now())
+
+  variant Variant @relation(fields: [variantId], references: [id])
+  team    Team    @relation(fields: [teamId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+}

@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded bg-clinical-700 text-white hover:bg-clinical-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50;
+  }
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold;
+  }
+  .badge-important { @apply badge bg-red-100 text-red-700; }
+  .badge-low       { @apply badge bg-amber-100 text-amber-700; }
+  .badge-avoid     { @apply badge bg-slate-100 text-slate-500; }
+  .badge-pathogenic       { @apply badge bg-red-100 text-red-700; }
+  .badge-likely_pathogenic { @apply badge bg-orange-100 text-orange-700; }
+  .badge-vus              { @apply badge bg-yellow-100 text-yellow-700; }
+  .badge-likely_benign    { @apply badge bg-green-100 text-green-600; }
+  .badge-benign           { @apply badge bg-slate-100 text-slate-500; }
+}
